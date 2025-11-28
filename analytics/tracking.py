@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from mysql.connector import MySQLConnection
@@ -62,3 +63,38 @@ def create_funnel_entry(
     connection.commit()
     cursor.close()
 
+
+def mark_certificate_purchased(
+    connection: MySQLConnection,
+    email: str,
+    funnel_type: str,
+    test_id: Optional[int],
+    purchased_at: datetime,
+) -> None:
+    cursor = connection.cursor()
+
+    if test_id is None:
+        query = """
+        UPDATE funnel_entries
+        SET certificate_purchased = 1,
+            certificate_purchased_at = %s
+        WHERE email = %s
+          AND funnel_type = %s
+          AND certificate_purchased = 0
+        """
+        params = (purchased_at, email, funnel_type)
+    else:
+        query = """
+        UPDATE funnel_entries
+        SET certificate_purchased = 1,
+            certificate_purchased_at = %s
+        WHERE email = %s
+          AND funnel_type = %s
+          AND test_id = %s
+          AND certificate_purchased = 0
+        """
+        params = (purchased_at, email, funnel_type, test_id)
+
+    cursor.execute(query, params)
+    connection.commit()
+    cursor.close()
