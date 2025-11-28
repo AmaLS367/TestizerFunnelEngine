@@ -1,4 +1,3 @@
-````markdown
 # Testizer Email Funnels
 
 Python service for managing email funnels for Testizer.com based on MySQL data and Brevo.
@@ -29,4 +28,3 @@ python -m app.main
 ```
 
 Logs will be written to `logs/app.log`.
-````
