@@ -32,11 +32,11 @@ class FunnelSyncService:
 
         language_rows = get_language_test_candidates(
             self.connection,
-            max_rows=max_rows_per_type,
+            limit=max_rows_per_type,
         )
         non_language_rows = get_non_language_test_candidates(
             self.connection,
-            max_rows=max_rows_per_type,
+            limit=max_rows_per_type,
         )
 
         self.logger.info(

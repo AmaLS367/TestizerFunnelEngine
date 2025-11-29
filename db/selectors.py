@@ -3,38 +3,51 @@ from typing import List, Tuple, Optional
 from mysql.connector import MySQLConnection
 
 
-def get_language_test_candidates(connection: MySQLConnection, max_rows: int = 20) -> List[Tuple]:
+DEFAULT_CANDIDATE_LOOKBACK_DAYS = 30
+
+
+def get_language_test_candidates(
+    connection: MySQLConnection,
+    limit: int = 100,
+) -> List[Tuple[int, str]]:
     cursor = connection.cursor()
 
     query = """
     SELECT
-        1 AS dummy_value,
-        'language@example.com' AS dummy_email
+        u.Id AS user_id,
+        u.Email AS email
+    FROM simpletest_users AS u
+    INNER JOIN simpletest_test AS t
+        ON t.Id = u.TestId
+    INNER JOIN simpletest_lang AS l
+        ON l.Id = t.LangId
+    LEFT JOIN funnel_entries AS f
+        ON f.email = u.Email
+       AND f.funnel_type = %s
+    WHERE
+        u.Email IS NOT NULL
+        AND u.Email <> ''
+        AND u.Datep >= DATE_SUB(NOW(), INTERVAL %s DAY)
+        AND f.id IS NULL
+    ORDER BY
+        u.Datep DESC
     LIMIT %s
     """
 
-    cursor.execute(query, (max_rows,))
+    params = ("language", DEFAULT_CANDIDATE_LOOKBACK_DAYS, limit)
+
+    cursor.execute(query, params)
     rows = cursor.fetchall()
     cursor.close()
 
     return rows
 
 
-def get_non_language_test_candidates(connection: MySQLConnection, max_rows: int = 20) -> List[Tuple]:
-    cursor = connection.cursor()
-
-    query = """
-    SELECT
-        2 AS dummy_value,
-        'non_language@example.com' AS dummy_email
-    LIMIT %s
-    """
-
-    cursor.execute(query, (max_rows,))
-    rows = cursor.fetchall()
-    cursor.close()
-
-    return rows
+def get_non_language_test_candidates(
+    connection: MySQLConnection,
+    limit: int = 100,
+) -> List[Tuple[int, str]]:
+    return []
 
 
 def get_pending_funnel_entries(
