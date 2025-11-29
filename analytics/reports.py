@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Any, List, Optional
 
 from mysql.connector import MySQLConnection
 
@@ -65,7 +65,7 @@ def _count_funnel_entries(
     WHERE funnel_type = %s
     """
 
-    params = [funnel_type]
+    params: List[Any] = [funnel_type]
 
     if period_start is not None:
         base_query += " AND entered_at >= %s"
@@ -79,7 +79,7 @@ def _count_funnel_entries(
     row = cursor.fetchone()
     cursor.close()
 
-    return int(row[0]) if row is not None else 0
+    return int(row[0]) if row is not None and row[0] is not None else 0
 
 
 def _count_funnel_purchases(
