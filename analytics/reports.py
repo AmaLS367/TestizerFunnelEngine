@@ -147,4 +147,3 @@ def _count_funnel_purchases(
     cursor.close()
 
     return int(row[0]) if row is not None else 0  # type: ignore[arg-type]
-

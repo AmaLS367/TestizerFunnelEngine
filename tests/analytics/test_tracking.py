@@ -132,4 +132,3 @@ def test_mark_certificate_purchased_with_test_id_updates_and_commits():
     assert "UPDATE funnel_entries" in query
     assert "AND test_id = %s" in query
     assert params == (purchased_at, "user@example.com", "language", 42)
-

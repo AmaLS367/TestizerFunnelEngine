@@ -61,7 +61,9 @@ def test_request_raises_runtime_error_when_api_key_missing(monkeypatch):
     )
 
     def fake_request(method, url, headers=None, json=None, timeout=None):
-        raise AssertionError("requests.request must not be called when api key is missing")
+        raise AssertionError(
+            "requests.request must not be called when api key is missing"
+        )
 
     monkeypatch.setattr(api_module.requests, "request", fake_request)
 
@@ -83,7 +85,8 @@ def test_request_in_dry_run_mode_does_not_call_requests(monkeypatch):
 
     monkeypatch.setattr(api_module.requests, "request", fake_request)
 
-    response = client._request("POST", "/contacts", json_body={"email": "user@example.com"})
+    response = client._request(
+        "POST", "/contacts", json_body={"email": "user@example.com"}
+    )
 
     assert response == {"dry_run": True}
-

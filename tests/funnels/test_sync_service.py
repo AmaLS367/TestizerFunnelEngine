@@ -1,5 +1,3 @@
-import pytest
-
 from funnels.sync_service import FunnelSyncService
 from brevo.models import BrevoContact
 
@@ -33,13 +31,17 @@ def test_funnel_sync_sends_candidates_and_creates_entries(monkeypatch):
     def fake_funnel_entry_exists(connection, email, funnel_type, test_id=None):
         return False
 
-    def fake_create_funnel_entry(connection, email, funnel_type, user_id=None, test_id=None):
-        created_entries.append({
-            "email": email,
-            "funnel_type": funnel_type,
-            "user_id": user_id,
-            "test_id": test_id,
-        })
+    def fake_create_funnel_entry(
+        connection, email, funnel_type, user_id=None, test_id=None
+    ):
+        created_entries.append(
+            {
+                "email": email,
+                "funnel_type": funnel_type,
+                "user_id": user_id,
+                "test_id": test_id,
+            }
+        )
 
     import funnels.sync_service as sync_module
 
@@ -94,8 +96,12 @@ def test_funnel_sync_does_nothing_when_no_candidates(monkeypatch):
     def fake_get_non_language_test_candidates(connection, limit):
         return []
 
-    def fake_create_funnel_entry(connection, email, funnel_type, user_id=None, test_id=None):
-        raise AssertionError("create_funnel_entry must not be called when there are no candidates")
+    def fake_create_funnel_entry(
+        connection, email, funnel_type, user_id=None, test_id=None
+    ):
+        raise AssertionError(
+            "create_funnel_entry must not be called when there are no candidates"
+        )
 
     import funnels.sync_service as sync_module
 
@@ -127,4 +133,3 @@ def test_funnel_sync_does_nothing_when_no_candidates(monkeypatch):
     service.sync()
 
     assert len(brevo_client.calls) == 0
-

@@ -77,4 +77,3 @@ def generate_conversion_report(
         )
 
     return report
-

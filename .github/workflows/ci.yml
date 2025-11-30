@@ -36,6 +36,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run black check
+        run: |
+          black --check .
+
+      - name: Run flake8
+        run: |
+          flake8 . --exclude=.venv,__pycache__,.git
+
+      - name: Run mypy
+        run: |
+          mypy . --ignore-missing-imports --exclude 'tests|\.venv|__pycache__'
+
       - name: Run tests
         run: |
           python -m pytest

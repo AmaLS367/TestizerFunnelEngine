@@ -49,7 +49,9 @@ def main() -> None:
 
     logger = logging.getLogger("cli.report_job")
 
-    logger.info("Building conversion report for funnel=%s, days=%s", args.funnel, args.days)
+    logger.info(
+        "Building conversion report for funnel=%s, days=%s", args.funnel, args.days
+    )
 
     period_start, period_end = build_period(args.days)
 
@@ -80,4 +82,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

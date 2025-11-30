@@ -29,4 +29,3 @@ def test_configure_logging_creates_directory_and_handlers(tmp_path) -> None:
     assert len(file_handlers) == 1
     file_handler = file_handlers[0]
     assert Path(file_handler.baseFilename).name == "app.log"
-

@@ -143,4 +143,3 @@ class BrevoApiClient:
             self.dry_run,
         )
         return self._request("POST", "/contacts", json_body=payload)
-

@@ -30,7 +30,11 @@ def test_main_prints_no_entries_message(monkeypatch, capsys) -> None:
     def fake_generate_conversion_report(from_date=None, to_date=None):
         return []
 
-    monkeypatch.setattr(report_conversions, "generate_conversion_report", fake_generate_conversion_report)
+    monkeypatch.setattr(
+        report_conversions,
+        "generate_conversion_report",
+        fake_generate_conversion_report,
+    )
     monkeypatch.setattr(sys, "argv", ["report_conversions"])
 
     report_conversions.main()
@@ -42,14 +46,24 @@ def test_main_prints_no_entries_message(monkeypatch, capsys) -> None:
 def test_main_prints_conversion_report(monkeypatch, capsys) -> None:
     items = [
         FunnelConversion(funnel_type="language", total_entries=10, total_purchased=4),
-        FunnelConversion(funnel_type="non_language", total_entries=5, total_purchased=1),
+        FunnelConversion(
+            funnel_type="non_language", total_entries=5, total_purchased=1
+        ),
     ]
 
     def fake_generate_conversion_report(from_date=None, to_date=None):
         return items
 
-    monkeypatch.setattr(report_conversions, "generate_conversion_report", fake_generate_conversion_report)
-    monkeypatch.setattr(sys, "argv", ["report_conversions", "--from-date", "2024-01-01", "--to-date", "2024-02-01"])
+    monkeypatch.setattr(
+        report_conversions,
+        "generate_conversion_report",
+        fake_generate_conversion_report,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["report_conversions", "--from-date", "2024-01-01", "--to-date", "2024-02-01"],
+    )
 
     report_conversions.main()
 
@@ -57,4 +71,3 @@ def test_main_prints_conversion_report(monkeypatch, capsys) -> None:
     assert "Funnel conversion report" in captured.out
     assert "language: entries=10, purchased=4, conversion=40.00%" in captured.out
     assert "non_language: entries=5, purchased=1, conversion=20.00%" in captured.out
-

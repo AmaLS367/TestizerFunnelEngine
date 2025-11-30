@@ -5,7 +5,11 @@ from db import selectors
 
 
 class DummyCursor:
-    def __init__(self, rows: Optional[List[Tuple[Any, ...]]] = None, row: Optional[Tuple[Any, ...]] = None) -> None:
+    def __init__(
+        self,
+        rows: Optional[List[Tuple[Any, ...]]] = None,
+        row: Optional[Tuple[Any, ...]] = None,
+    ) -> None:
         self.rows = rows or []
         self.row = row
         self.last_query: Optional[str] = None
@@ -116,4 +120,3 @@ def test_get_certificate_purchase_for_entry_returns_row_or_none() -> None:
     assert not_found is None
     assert dummy_cursor_without_row.fetchone_called is True
     assert dummy_cursor_without_row.closed is True
-

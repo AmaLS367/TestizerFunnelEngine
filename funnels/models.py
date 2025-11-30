@@ -15,4 +15,3 @@ class FunnelCandidate:
     user_id: Optional[int] = None
     test_id: Optional[int] = None
     test_completed_at: Optional[datetime] = None
-

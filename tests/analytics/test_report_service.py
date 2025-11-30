@@ -1,11 +1,9 @@
-from datetime import date, datetime
-from unittest.mock import MagicMock
+from datetime import datetime
 from contextlib import contextmanager
+from unittest.mock import MagicMock
 
 from analytics import report_service
 from analytics.report_service import generate_conversion_report, FunnelConversion
-from db import connection
-from config import settings
 
 
 class DummyConnection:
@@ -59,9 +57,7 @@ def test_generate_conversion_report_builds_funnel_conversions(monkeypatch):
     assert isinstance(report, list)
     assert len(report) == 2
 
-    language_item = next(
-        item for item in report if item.funnel_type == "language"
-    )
+    language_item = next(item for item in report if item.funnel_type == "language")
     assert isinstance(language_item, FunnelConversion)
     assert language_item.total_entries == 10
     assert language_item.total_purchased == 3
@@ -74,4 +70,3 @@ def test_generate_conversion_report_builds_funnel_conversions(monkeypatch):
     assert non_language_item.total_entries == 5
     assert non_language_item.total_purchased == 0
     assert non_language_item.conversion_rate == 0.0
-

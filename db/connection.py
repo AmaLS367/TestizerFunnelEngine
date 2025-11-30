@@ -36,7 +36,9 @@ def create_database_connection(database_settings: DatabaseSettings) -> MySQLConn
 
 
 @contextmanager
-def database_connection_scope(database_settings: DatabaseSettings) -> Generator[MySQLConnection, None, None]:
+def database_connection_scope(
+    database_settings: DatabaseSettings,
+) -> Generator[MySQLConnection, None, None]:
     """Context manager for database connections with automatic cleanup.
 
     Ensures connection is properly closed even if exceptions occur during execution.

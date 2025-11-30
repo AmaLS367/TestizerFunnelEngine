@@ -1,4 +1,3 @@
-import sys
 from contextlib import contextmanager
 from unittest.mock import MagicMock
 
@@ -54,7 +53,13 @@ class FakeBrevoApiClient:
 
 
 class FakeFunnelSyncService:
-    def __init__(self, connection: DummyConnection, brevo_client: FakeBrevoApiClient, language_list_id: int, non_language_list_id: int) -> None:
+    def __init__(
+        self,
+        connection: DummyConnection,
+        brevo_client: FakeBrevoApiClient,
+        language_list_id: int,
+        non_language_list_id: int,
+    ) -> None:
         self.connection = connection
         self.brevo_client = brevo_client
         self.language_list_id = language_list_id
@@ -66,7 +71,9 @@ class FakeFunnelSyncService:
 
 
 class FakePurchaseSyncService:
-    def __init__(self, connection: DummyConnection, brevo_client: FakeBrevoApiClient) -> None:
+    def __init__(
+        self, connection: DummyConnection, brevo_client: FakeBrevoApiClient
+    ) -> None:
         self.connection = connection
         self.brevo_client = brevo_client
         self.sync_called_with = None
@@ -91,8 +98,12 @@ def test_main_runs_full_cycle_with_configured_lists(monkeypatch) -> None:
     def fake_configure_logging(log_level: str) -> None:
         return None
 
-    def fake_funnel_service_factory(connection, brevo_client, language_list_id, non_language_list_id):
-        instance = FakeFunnelSyncService(connection, brevo_client, language_list_id, non_language_list_id)
+    def fake_funnel_service_factory(
+        connection, brevo_client, language_list_id, non_language_list_id
+    ):
+        instance = FakeFunnelSyncService(
+            connection, brevo_client, language_list_id, non_language_list_id
+        )
         funnel_service_instances.append(instance)
         return instance
 
@@ -103,7 +114,9 @@ def test_main_runs_full_cycle_with_configured_lists(monkeypatch) -> None:
 
     monkeypatch.setattr(app_main, "load_settings", fake_load_settings)
     monkeypatch.setattr(app_main, "configure_logging", fake_configure_logging)
-    monkeypatch.setattr(app_main, "database_connection_scope", fake_database_connection_scope)
+    monkeypatch.setattr(
+        app_main, "database_connection_scope", fake_database_connection_scope
+    )
     monkeypatch.setattr(app_main, "BrevoApiClient", FakeBrevoApiClient)
     monkeypatch.setattr(app_main, "FunnelSyncService", fake_funnel_service_factory)
     monkeypatch.setattr(app_main, "PurchaseSyncService", fake_purchase_service_factory)
@@ -138,10 +151,20 @@ def test_main_exits_early_when_lists_not_configured(monkeypatch) -> None:
 
     monkeypatch.setattr(app_main, "load_settings", fake_load_settings)
     monkeypatch.setattr(app_main, "configure_logging", fake_configure_logging)
-    monkeypatch.setattr(app_main, "database_connection_scope", fake_database_connection_scope)
+    monkeypatch.setattr(
+        app_main, "database_connection_scope", fake_database_connection_scope
+    )
     monkeypatch.setattr(app_main, "BrevoApiClient", FakeBrevoApiClient)
-    monkeypatch.setattr(app_main, "FunnelSyncService", lambda *args, **kwargs: funnel_service_instances.append(args))
-    monkeypatch.setattr(app_main, "PurchaseSyncService", lambda *args, **kwargs: purchase_service_instances.append(args))
+    monkeypatch.setattr(
+        app_main,
+        "FunnelSyncService",
+        lambda *args, **kwargs: funnel_service_instances.append(args),
+    )
+    monkeypatch.setattr(
+        app_main,
+        "PurchaseSyncService",
+        lambda *args, **kwargs: purchase_service_instances.append(args),
+    )
 
     app_main.main()
 
@@ -165,6 +188,7 @@ def test_main_handles_exception_and_exits_with_code_1(monkeypatch) -> None:
         return None
 
     import logging
+
     original_get_logger = logging.getLogger
 
     def fake_get_logger(name=None):
@@ -181,7 +205,9 @@ def test_main_handles_exception_and_exits_with_code_1(monkeypatch) -> None:
     monkeypatch.setattr(app_main, "load_settings", fake_load_settings)
     monkeypatch.setattr(app_main, "configure_logging", fake_configure_logging)
     monkeypatch.setattr(logging, "getLogger", fake_get_logger)
-    monkeypatch.setattr(app_main, "database_connection_scope", fake_database_connection_scope)
+    monkeypatch.setattr(
+        app_main, "database_connection_scope", fake_database_connection_scope
+    )
     monkeypatch.setattr(sentry_sdk, "capture_exception", fake_capture_exception)
 
     with pytest.raises(SystemExit) as exc_info:
@@ -203,6 +229,7 @@ def test_main_propagates_keyboard_interrupt(monkeypatch) -> None:
         logger = MagicMock()
         logger.info = MagicMock()
         import logging
+
         logging.getLogger = lambda name: logger
         return None
 
@@ -211,4 +238,3 @@ def test_main_propagates_keyboard_interrupt(monkeypatch) -> None:
 
     with pytest.raises(KeyboardInterrupt):
         app_main.main()
-

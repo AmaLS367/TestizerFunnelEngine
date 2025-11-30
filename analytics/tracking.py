@@ -50,7 +50,7 @@ def funnel_entry_exists(
           AND test_id = %s
         LIMIT 1
         """
-        params = (email, funnel_type, test_id)
+        params = (email, funnel_type, test_id)  # type: ignore[assignment]
 
     cursor.execute(query, params)
     row = cursor.fetchone()
@@ -156,7 +156,7 @@ def mark_certificate_purchased(
           AND test_id = %s
           AND certificate_purchased = 0
         """
-        params = (purchased_at, email, funnel_type, test_id)
+        params = (purchased_at, email, funnel_type, test_id)  # type: ignore[assignment]
 
     cursor.execute(query, params)
     connection.commit()

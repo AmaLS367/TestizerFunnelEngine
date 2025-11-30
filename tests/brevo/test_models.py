@@ -40,4 +40,3 @@ def test_brevo_contact_to_payload_handles_none_attributes() -> None:
     assert payload["email"] == "user@example.com"
     assert "listIds" not in payload
     assert "attributes" not in payload
-

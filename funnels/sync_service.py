@@ -1,5 +1,5 @@
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from mysql.connector import MySQLConnection
 
@@ -211,4 +211,3 @@ class FunnelSyncService:
             user_id=candidate.user_id,
             test_id=candidate.test_id,
         )
-

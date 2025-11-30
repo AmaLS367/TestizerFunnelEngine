@@ -1,16 +1,9 @@
 from datetime import datetime
-from unittest.mock import MagicMock
-from typing import TYPE_CHECKING
 
 import pytest
 
-if TYPE_CHECKING:
-    from mysql.connector import MySQLConnection
-    from brevo.api_client import BrevoApiClient
-
 from funnels import purchase_sync_service
 from funnels.purchase_sync_service import PurchaseSyncService
-from analytics import tracking
 
 
 class DummyConnection:
@@ -34,13 +27,17 @@ def test_purchase_sync_marks_entry_as_purchased(monkeypatch):
         assert max_rows == 100
         return pending_entries
 
-    def fake_get_certificate_purchase_for_entry(connection, email, funnel_type, user_id, test_id):
+    def fake_get_certificate_purchase_for_entry(
+        connection, email, funnel_type, user_id, test_id
+    ):
         assert email == "user@example.com"
         assert funnel_type == "language"
         assert test_id == 42
         return (123, datetime(2025, 1, 1, 12, 0, 0))
 
-    def fake_mark_certificate_purchased(connection, email, funnel_type, test_id, purchased_at):
+    def fake_mark_certificate_purchased(
+        connection, email, funnel_type, test_id, purchased_at
+    ):
         calls["marked"].append((email, funnel_type, test_id, purchased_at))
 
     monkeypatch.setattr(
@@ -83,10 +80,14 @@ def test_purchase_sync_skips_when_no_purchase_found(monkeypatch):
     def fake_get_pending_funnel_entries(connection, max_rows):
         return pending_entries
 
-    def fake_get_certificate_purchase_for_entry(connection, email, funnel_type, user_id, test_id):
+    def fake_get_certificate_purchase_for_entry(
+        connection, email, funnel_type, user_id, test_id
+    ):
         return None
 
-    def fake_mark_certificate_purchased(connection, email, funnel_type, test_id, purchased_at):
+    def fake_mark_certificate_purchased(
+        connection, email, funnel_type, test_id, purchased_at
+    ):
         calls["marked"].append((email, funnel_type, test_id, purchased_at))
 
     monkeypatch.setattr(
@@ -122,15 +123,21 @@ def test_purchase_sync_raises_value_error_for_invalid_purchase_datetime(monkeypa
     def fake_get_pending_funnel_entries(connection, max_rows):
         return pending_entries
 
-    def fake_get_certificate_purchase_for_entry(connection, email, funnel_type, user_id, test_id):
+    def fake_get_certificate_purchase_for_entry(
+        connection, email, funnel_type, user_id, test_id
+    ):
         assert email == "user@example.com"
         assert funnel_type == "language"
         assert user_id == 10
         assert test_id == 42
         return (123, "2025-01-01")
 
-    def fake_mark_certificate_purchased(connection, email, funnel_type, test_id, purchased_at):
-        raise AssertionError("mark_certificate_purchased must not be called for invalid datetime")
+    def fake_mark_certificate_purchased(
+        connection, email, funnel_type, test_id, purchased_at
+    ):
+        raise AssertionError(
+            "mark_certificate_purchased must not be called for invalid datetime"
+        )
 
     monkeypatch.setattr(
         purchase_sync_service,
@@ -155,4 +162,3 @@ def test_purchase_sync_raises_value_error_for_invalid_purchase_datetime(monkeypa
 
     with pytest.raises(ValueError):
         service.sync(max_rows=100)
-

@@ -64,4 +64,3 @@ def test_load_settings_builds_configuration_from_env(monkeypatch):
     assert config.brevo.language_tests_list_id == 10
     assert config.brevo.non_language_tests_list_id == 20
     assert config.sentry.dsn == "https://example@sentry.io/123456"
-

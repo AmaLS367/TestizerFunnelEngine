@@ -36,4 +36,3 @@ class BrevoContact:
             payload["attributes"] = self.attributes
 
         return payload
-

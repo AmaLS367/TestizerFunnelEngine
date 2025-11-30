@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import List, Tuple, Optional
 
 from mysql.connector import MySQLConnection
 
@@ -164,4 +163,3 @@ class PurchaseSyncService:
         )
 
         self.brevo_client.create_or_update_contact(contact)
-

@@ -14,7 +14,9 @@ class DummyConnection:
         self.closed = True
 
 
-def test_create_database_connection_calls_mysql_connector_connect(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_database_connection_calls_mysql_connector_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     captured_kwargs = {}
 
     def fake_connect(**kwargs):
@@ -43,7 +45,9 @@ def test_create_database_connection_calls_mysql_connector_connect(monkeypatch: p
     assert captured_kwargs["charset"] == "utf8mb4"
 
 
-def test_create_database_connection_propagates_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_database_connection_propagates_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def fake_connect(**kwargs):
         raise mysql.connector.Error("connection failed")
 
@@ -62,13 +66,17 @@ def test_create_database_connection_propagates_errors(monkeypatch: pytest.Monkey
         create_database_connection(settings)
 
 
-def test_database_connection_scope_yields_and_closes_on_success(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_connection_scope_yields_and_closes_on_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     dummy_connection = DummyConnection()
 
     def fake_create_database_connection(database_settings: DatabaseSettings):
         return dummy_connection
 
-    monkeypatch.setattr(connection_module, "create_database_connection", fake_create_database_connection)
+    monkeypatch.setattr(
+        connection_module, "create_database_connection", fake_create_database_connection
+    )
 
     settings = DatabaseSettings(
         host="localhost",
@@ -86,13 +94,17 @@ def test_database_connection_scope_yields_and_closes_on_success(monkeypatch: pyt
     assert dummy_connection.closed is True
 
 
-def test_database_connection_scope_closes_on_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_database_connection_scope_closes_on_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     dummy_connection = DummyConnection()
 
     def fake_create_database_connection(database_settings: DatabaseSettings):
         return dummy_connection
 
-    monkeypatch.setattr(connection_module, "create_database_connection", fake_create_database_connection)
+    monkeypatch.setattr(
+        connection_module, "create_database_connection", fake_create_database_connection
+    )
 
     settings = DatabaseSettings(
         host="localhost",
@@ -108,4 +120,3 @@ def test_database_connection_scope_closes_on_exception(monkeypatch: pytest.Monke
             raise RuntimeError("failure inside context")
 
     assert dummy_connection.closed is True
-

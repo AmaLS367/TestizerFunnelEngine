@@ -56,7 +56,11 @@ def generate_context():
                     continue
 
                 _, ext = os.path.splitext(file)
-                if ext in INCLUDE_EXT or file in ("Dockerfile", ".htaccess", "requirements.txt"):
+                if ext in INCLUDE_EXT or file in (
+                    "Dockerfile",
+                    ".htaccess",
+                    "requirements.txt",
+                ):
                     path = os.path.join(root, file)
 
                     path = os.path.normpath(path)
@@ -66,7 +70,9 @@ def generate_context():
                     outfile.write(f"{'='*80}\n\n")
 
                     try:
-                        with open(path, "r", encoding="utf-8", errors="ignore") as infile:
+                        with open(
+                            path, "r", encoding="utf-8", errors="ignore"
+                        ) as infile:
                             content = infile.read()
                             outfile.write(content)
                             if not content.endswith("\n"):
@@ -79,4 +85,3 @@ def generate_context():
 
 if __name__ == "__main__":
     generate_context()
-

@@ -37,4 +37,3 @@ def test_funnel_candidate_with_all_fields() -> None:
     assert candidate.user_id == 10
     assert candidate.test_id == 20
     assert candidate.test_completed_at == completed_at
-
