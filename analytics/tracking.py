@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-import mysql.connector
 from mysql.connector import IntegrityError, MySQLConnection
 
 

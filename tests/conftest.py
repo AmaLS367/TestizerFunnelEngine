@@ -10,16 +10,19 @@ from unittest.mock import MagicMock
 
 class MockMySQLConnection:
     """Mock MySQLConnection class."""
+
     pass
 
 
 class MockError(Exception):
     """Mock mysql.connector.Error."""
+
     pass
 
 
 class MockIntegrityError(MockError):
     """Mock mysql.connector.IntegrityError."""
+
     pass
 
 
@@ -39,4 +42,3 @@ _mysql_mock.connector = _mysql_connector_mock
 # Add mocks to sys.modules before any imports
 sys.modules["mysql"] = _mysql_mock
 sys.modules["mysql.connector"] = _mysql_connector_mock
-

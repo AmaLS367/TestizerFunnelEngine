@@ -1,5 +1,4 @@
 from datetime import datetime
-from unittest.mock import MagicMock, patch
 
 import mysql.connector
 import pytest

@@ -10,8 +10,7 @@ operations.
 
 import os
 import sys
-from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 
 import mysql.connector
 from mysql.connector import MySQLConnection
@@ -186,4 +185,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

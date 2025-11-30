@@ -244,7 +244,7 @@ class PurchaseSyncService:
             cursor.execute(query, params)
             rows = cursor.fetchall()
 
-            return [row[0] for row in rows]
+            return [int(row[0]) for row in rows]  # type: ignore[arg-type]
 
         finally:
             cursor.close()

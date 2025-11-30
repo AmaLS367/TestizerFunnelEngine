@@ -8,6 +8,7 @@ and do not perform commits or rollbacks - transaction control is the caller's re
 from dataclasses import dataclass
 from typing import List, Optional
 
+import mysql.connector
 from mysql.connector import MySQLConnection
 
 
@@ -62,6 +63,8 @@ def enqueue_brevo_sync_job(
         params = (funnel_entry_id, operation_type, payload)
         cursor.execute(query, params)
         new_id = cursor.lastrowid
+        if new_id is None:
+            raise mysql.connector.Error("Failed to get inserted row ID")
         return new_id
 
     finally:
@@ -111,13 +114,13 @@ def fetch_pending_jobs(
         jobs = []
         for row in rows:
             job = BrevoSyncJob(
-                id=row[0],
-                funnel_entry_id=row[1],
-                operation_type=row[2],
-                payload=row[3],
-                status=row[4],
-                retry_count=row[5],
-                next_attempt_at=row[6],
+                id=int(row[0]),  # type: ignore[arg-type]
+                funnel_entry_id=int(row[1]),  # type: ignore[arg-type]
+                operation_type=str(row[2]),  # type: ignore[arg-type]
+                payload=str(row[3]),  # type: ignore[arg-type]
+                status=str(row[4]),  # type: ignore[arg-type]
+                retry_count=int(row[5]),  # type: ignore[arg-type]
+                next_attempt_at=str(row[6]) if row[6] is not None else None,  # type: ignore[arg-type]
             )
             jobs.append(job)
 
