@@ -1,4 +1,10 @@
+import sys
 from contextlib import contextmanager
+from unittest.mock import MagicMock
+
+import pytest
+
+import sentry_sdk
 
 from app import main as app_main
 
@@ -141,4 +147,68 @@ def test_main_exits_early_when_lists_not_configured(monkeypatch) -> None:
 
     assert funnel_service_instances == []
     assert purchase_service_instances == []
+
+
+def test_main_handles_exception_and_exits_with_code_1(monkeypatch) -> None:
+    sentry_calls = []
+    logger_calls = []
+
+    mock_logger = MagicMock()
+    mock_logger.critical = lambda *args, **kwargs: logger_calls.append((args, kwargs))
+
+    settings = DummySettings()
+
+    def fake_load_settings():
+        return settings
+
+    def fake_configure_logging(log_level: str) -> None:
+        return None
+
+    import logging
+    original_get_logger = logging.getLogger
+
+    def fake_get_logger(name=None):
+        if name == "app.main":
+            return mock_logger
+        return original_get_logger(name)
+
+    def fake_capture_exception(exception):
+        sentry_calls.append(exception)
+
+    def fake_database_connection_scope(database_settings):
+        raise RuntimeError("Database connection failed")
+
+    monkeypatch.setattr(app_main, "load_settings", fake_load_settings)
+    monkeypatch.setattr(app_main, "configure_logging", fake_configure_logging)
+    monkeypatch.setattr(logging, "getLogger", fake_get_logger)
+    monkeypatch.setattr(app_main, "database_connection_scope", fake_database_connection_scope)
+    monkeypatch.setattr(sentry_sdk, "capture_exception", fake_capture_exception)
+
+    with pytest.raises(SystemExit) as exc_info:
+        app_main.main()
+
+    assert exc_info.value.code == 1
+    assert len(sentry_calls) == 1
+    assert isinstance(sentry_calls[0], RuntimeError)
+    assert str(sentry_calls[0]) == "Database connection failed"
+    assert len(logger_calls) == 1
+    assert "Critical error in main" in logger_calls[0][0][0]
+
+
+def test_main_propagates_keyboard_interrupt(monkeypatch) -> None:
+    def fake_load_settings():
+        raise KeyboardInterrupt()
+
+    def fake_configure_logging(log_level: str) -> None:
+        logger = MagicMock()
+        logger.info = MagicMock()
+        import logging
+        logging.getLogger = lambda name: logger
+        return None
+
+    monkeypatch.setattr(app_main, "load_settings", fake_load_settings)
+    monkeypatch.setattr(app_main, "configure_logging", fake_configure_logging)
+
+    with pytest.raises(KeyboardInterrupt):
+        app_main.main()
 
