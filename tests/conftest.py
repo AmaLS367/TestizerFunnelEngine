@@ -80,9 +80,6 @@ def test_settings() -> Settings:
         Settings object with test database configuration.
     """
     from config.settings import (
-        ApplicationSettings,
-        BrevoSettings,
-        SentrySettings,
         load_settings,
     )
 

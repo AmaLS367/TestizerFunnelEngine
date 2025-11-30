@@ -14,10 +14,10 @@ project_root = pathlib.Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from tests.utils.mysql_test_utils import (
+from tests.utils.mysql_test_utils import (  # noqa: E402
     create_test_database,
     apply_test_schema,
-)  # noqa: E402
+)
 from tests.utils.test_db_settings import get_test_database_settings  # noqa: E402
 
 
