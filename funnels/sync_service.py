@@ -1,11 +1,13 @@
+import json
 import logging
 from typing import List, Tuple
 
+import mysql.connector
 from mysql.connector import MySQLConnection
 
 from analytics.tracking import create_funnel_entry
 from brevo.api_client import BrevoApiClient
-from brevo.models import BrevoContact
+from brevo.outbox import enqueue_brevo_sync_job
 from funnels.models import FunnelCandidate, FunnelType
 from db.selectors import (
     get_language_test_candidates,
@@ -161,13 +163,12 @@ class FunnelSyncService:
         Idempotency is enforced at the database level by create_funnel_entry, which
         handles duplicate entries gracefully via the unique constraint on
         (email, funnel_type, test_id). If a duplicate entry already exists,
-        create_funnel_entry will rollback and log an informational message without
-        raising an exception, effectively skipping the candidate.
+        create_funnel_entry returns None and no outbox job is enqueued.
 
         Side Effects:
-            - Creates/updates contact in Brevo (unless dry-run mode).
-            - Inserts record into funnel_entries table (or handles duplicate gracefully).
-            - In dry-run mode, only logs what would be done without making changes.
+            - In dry-run mode: only logs what would be done without making changes.
+            - In production mode: creates funnel entry and enqueues Brevo sync job
+              in a single atomic transaction.
 
         Args:
             candidate: User candidate extracted from test results.
@@ -188,33 +189,73 @@ class FunnelSyncService:
             )
             return
 
-        brevo_contact = BrevoContact(
-            email=candidate.email,
-            list_ids=[list_id],
-            attributes={
-                "FUNNEL_TYPE": candidate.funnel_type,
-            },
-        )
+        try:
+            self.connection.start_transaction()
 
-        self.logger.info(
-            "Sending candidate to Brevo (email=%s, funnel_type=%s, list_id=%s)",
-            candidate.email,
-            candidate.funnel_type,
-            list_id,
-        )
+            self.logger.info(
+                "Creating funnel entry (email=%s, funnel_type=%s)",
+                candidate.email,
+                candidate.funnel_type,
+            )
 
-        self.brevo_client.create_or_update_contact(brevo_contact)
+            funnel_entry_id = create_funnel_entry(
+                connection=self.connection,
+                email=candidate.email,
+                funnel_type=candidate.funnel_type,
+                user_id=candidate.user_id,
+                test_id=candidate.test_id,
+            )
 
-        self.logger.info(
-            "Creating funnel entry (email=%s, funnel_type=%s)",
-            candidate.email,
-            candidate.funnel_type,
-        )
+            if funnel_entry_id is None:
+                # Duplicate entry - commit and return without enqueuing outbox job
+                self.connection.commit()
+                self.logger.info(
+                    "Duplicate funnel entry detected, skipping (email=%s, funnel_type=%s, test_id=%s)",
+                    candidate.email,
+                    candidate.funnel_type,
+                    candidate.test_id,
+                )
+                return
 
-        create_funnel_entry(
-            connection=self.connection,
-            email=candidate.email,
-            funnel_type=candidate.funnel_type,
-            user_id=candidate.user_id,
-            test_id=candidate.test_id,
-        )
+            # Build JSON payload for Brevo sync job
+            payload_data = {
+                "email": candidate.email,
+                "funnel_type": candidate.funnel_type,
+                "user_id": candidate.user_id,
+                "test_id": candidate.test_id,
+                "list_ids": [list_id],
+                "attributes": {
+                    "FUNNEL_TYPE": candidate.funnel_type,
+                },
+            }
+            payload_json = json.dumps(payload_data)
+
+            self.logger.info(
+                "Enqueuing Brevo sync job (funnel_entry_id=%s, operation_type=upsert_contact)",
+                funnel_entry_id,
+            )
+
+            enqueue_brevo_sync_job(
+                connection=self.connection,
+                funnel_entry_id=funnel_entry_id,
+                operation_type="upsert_contact",
+                payload=payload_json,
+            )
+
+            self.connection.commit()
+
+            self.logger.info(
+                "Successfully processed candidate (email=%s, funnel_entry_id=%s)",
+                candidate.email,
+                funnel_entry_id,
+            )
+
+        except mysql.connector.Error as e:
+            self.connection.rollback()
+            self.logger.error(
+                "Failed to process candidate (email=%s, funnel_type=%s): %s",
+                candidate.email,
+                candidate.funnel_type,
+                str(e),
+            )
+            raise

@@ -73,7 +73,7 @@ class FakeFunnelSyncService:
 
 class FakePurchaseSyncService:
     def __init__(
-        self, connection: DummyConnection, brevo_client: FakeBrevoApiClient
+        self, connection: DummyConnection, brevo_client: FakeBrevoApiClient, dry_run=False
     ) -> None:
         self.connection = connection
         self.brevo_client = brevo_client
@@ -100,7 +100,7 @@ def test_main_runs_full_cycle_with_configured_lists(monkeypatch) -> None:
         return None
 
     def fake_funnel_service_factory(
-        connection, brevo_client, language_list_id, non_language_list_id
+        connection, brevo_client, language_list_id, non_language_list_id, dry_run=False
     ):
         instance = FakeFunnelSyncService(
             connection, brevo_client, language_list_id, non_language_list_id
@@ -108,8 +108,8 @@ def test_main_runs_full_cycle_with_configured_lists(monkeypatch) -> None:
         funnel_service_instances.append(instance)
         return instance
 
-    def fake_purchase_service_factory(connection, brevo_client):
-        instance = FakePurchaseSyncService(connection, brevo_client)
+    def fake_purchase_service_factory(connection, brevo_client, dry_run=False):
+        instance = FakePurchaseSyncService(connection, brevo_client, dry_run)
         purchase_service_instances.append(instance)
         return instance
 

@@ -1,11 +1,14 @@
+import json
 import logging
 from datetime import datetime
+from typing import List, Optional
 
+import mysql.connector
 from mysql.connector import MySQLConnection
 
 from analytics.tracking import mark_certificate_purchased
 from brevo.api_client import BrevoApiClient
-from brevo.models import BrevoContact
+from brevo.outbox import enqueue_brevo_sync_job
 from db.selectors import get_pending_funnel_entries, get_certificate_purchase_for_entry
 
 
@@ -101,19 +104,79 @@ class PurchaseSyncService:
                     order_id,
                 )
             else:
-                mark_certificate_purchased(
-                    connection=self.connection,
-                    email=email,
-                    funnel_type=funnel_type,
-                    test_id=test_id,
-                    purchased_at=purchased_at_datetime,
-                )
+                try:
+                    self.connection.start_transaction()
 
-                self._update_brevo_contact_after_purchase(
-                    email=email,
-                    funnel_type=funnel_type,
-                    purchased_at=purchased_at_datetime,
-                )
+                    # Get funnel_entry_id(s) that match this purchase
+                    funnel_entry_ids = self._get_funnel_entry_ids(
+                        email=email,
+                        funnel_type=funnel_type,
+                        test_id=test_id,
+                    )
+
+                    if not funnel_entry_ids:
+                        self.logger.warning(
+                            "No funnel entry found for purchase (email=%s, funnel_type=%s, test_id=%s)",
+                            email,
+                            funnel_type,
+                            test_id,
+                        )
+                        self.connection.rollback()
+                        continue
+
+                    # Update funnel_entries to mark as purchased
+                    mark_certificate_purchased(
+                        connection=self.connection,
+                        email=email,
+                        funnel_type=funnel_type,
+                        test_id=test_id,
+                        purchased_at=purchased_at_datetime,
+                    )
+
+                    # Enqueue Brevo sync job for each affected funnel entry
+                    payload_data = {
+                        "email": email,
+                        "funnel_type": funnel_type,
+                        "purchased_at": purchased_at_datetime.isoformat(),
+                        "attributes": {
+                            "FUNNEL_TYPE": funnel_type,
+                            "CERTIFICATE_PURCHASED": 1,
+                            "CERTIFICATE_PURCHASED_AT": purchased_at_datetime.isoformat(),
+                        },
+                    }
+                    payload_json = json.dumps(payload_data)
+
+                    for funnel_entry_id in funnel_entry_ids:
+                        self.logger.info(
+                            "Enqueuing Brevo sync job for purchase (funnel_entry_id=%s, operation_type=update_after_purchase)",
+                            funnel_entry_id,
+                        )
+                        enqueue_brevo_sync_job(
+                            connection=self.connection,
+                            funnel_entry_id=funnel_entry_id,
+                            operation_type="update_after_purchase",
+                            payload=payload_json,
+                        )
+
+                    self.connection.commit()
+
+                    self.logger.info(
+                        "Successfully processed purchase (email=%s, funnel_type=%s, order_id=%s)",
+                        email,
+                        funnel_type,
+                        order_id,
+                    )
+
+                except mysql.connector.Error as e:
+                    self.connection.rollback()
+                    self.logger.error(
+                        "Failed to process purchase (email=%s, funnel_type=%s, order_id=%s): %s",
+                        email,
+                        funnel_type,
+                        order_id,
+                        str(e),
+                    )
+                    raise
 
         self.logger.info("Purchase synchronization finished")
 
@@ -139,40 +202,49 @@ class PurchaseSyncService:
 
         raise ValueError("Unexpected purchased_at value type")
 
-    def _update_brevo_contact_after_purchase(
+    def _get_funnel_entry_ids(
         self,
         email: str,
         funnel_type: str,
-        purchased_at: datetime,
-    ) -> None:
-        """Updates Brevo contact attributes to reflect certificate purchase.
-
-        Side Effects:
-            - Updates contact attributes in Brevo (unless dry-run mode).
-            - Does not modify list membership, only attributes.
+        test_id: Optional[int],
+    ) -> List[int]:
+        """Gets funnel entry IDs that match the given criteria.
 
         Args:
-            email: Contact email address in Brevo.
-            funnel_type: Funnel type for attribute tracking.
-            purchased_at: Purchase timestamp for analytics.
+            email: User email address.
+            funnel_type: Funnel type ('language' or 'non_language').
+            test_id: Optional test ID for more specific matching.
+
+        Returns:
+            List of funnel entry IDs that match the criteria.
         """
-        attributes = {
-            "FUNNEL_TYPE": funnel_type,
-            "CERTIFICATE_PURCHASED": 1,
-            "CERTIFICATE_PURCHASED_AT": purchased_at.isoformat(),
-        }
+        cursor = self.connection.cursor()
 
-        contact = BrevoContact(
-            email=email,
-            list_ids=[],
-            attributes=attributes,
-            update_enabled=True,
-        )
+        try:
+            if test_id is None:
+                query = """
+                SELECT id
+                FROM funnel_entries
+                WHERE email = %s
+                  AND funnel_type = %s
+                  AND certificate_purchased = 0
+                """
+                params = (email, funnel_type)
+            else:
+                query = """
+                SELECT id
+                FROM funnel_entries
+                WHERE email = %s
+                  AND funnel_type = %s
+                  AND test_id = %s
+                  AND certificate_purchased = 0
+                """
+                params = (email, funnel_type, test_id)  # type: ignore[assignment]
 
-        self.logger.info(
-            "Updating Brevo contact after purchase (email=%s, funnel_type=%s)",
-            email,
-            funnel_type,
-        )
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
 
-        self.brevo_client.create_or_update_contact(contact)
+            return [row[0] for row in rows]
+
+        finally:
+            cursor.close()
