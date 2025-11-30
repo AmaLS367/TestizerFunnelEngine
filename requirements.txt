@@ -1,6 +1,7 @@
 mysql-connector-python==9.1.0
 python-dotenv==1.0.1
 requests==2.32.3
+types-requests==2.32.4.20250913
 pytest==8.3.4
 sentry-sdk==2.19.1
 flake8==7.3.0

@@ -1,6 +1,6 @@
 # Testizer Email Funnels
 
-![CI](https://github.com/user/testizer_email_funnels/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/AmaLS367/testizer_email_funnels/actions/workflows/ci.yml/badge.svg?branch=main)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
 ![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)
@@ -33,7 +33,7 @@ Python-сервис для управления email-воронками Testize
 1. Клонируйте репозиторий:
 
 ```bash
-git clone https://github.com/user/testizer_email_funnels.git
+git clone git@github.com:AmaLS367/testizer_email_funnels.git
 cd testizer_email_funnels
 ```
 
