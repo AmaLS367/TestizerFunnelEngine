@@ -1,4 +1,3 @@
-import mysql.connector
 import pytest
 
 from config.settings import DatabaseSettings

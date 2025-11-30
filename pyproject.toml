@@ -29,3 +29,18 @@ testpaths = [
     "tests",
 ]
 
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E203",  # keep compatible with black
+    "E501",  # line too long (handled by black formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Example: relax some rules for tests if needed in the future
+# "tests/**" = ["S101"]
+
