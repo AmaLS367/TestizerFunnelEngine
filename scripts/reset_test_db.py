@@ -9,11 +9,11 @@ project_root = pathlib.Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from config.settings import load_settings  # noqa: E402
 from tests.utils.mysql_test_utils import (
     create_test_database,
     apply_test_schema,
 )  # noqa: E402
+from tests.utils.test_db_settings import get_test_database_settings  # noqa: E402
 
 
 def reset_test_database() -> None:
@@ -21,9 +21,11 @@ def reset_test_database() -> None:
 
     This function recreates all required tables for integration tests.
     It relies on the schema file to drop and create tables in the correct order.
+
+    Uses test database settings from TEST_DB_* environment variables to ensure
+    it never operates on the production database.
     """
-    settings = load_settings()
-    database_settings = settings.database
+    database_settings = get_test_database_settings()
 
     # Ensure test database exists
     create_test_database(database_settings)

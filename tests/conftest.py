@@ -13,9 +13,10 @@ from unittest.mock import MagicMock
 import pytest
 from mysql.connector import MySQLConnection
 
-from config.settings import DatabaseSettings, Settings, load_settings
+from config.settings import DatabaseSettings, Settings
 from db.connection import database_connection_scope
 from tests.utils.mysql_test_utils import apply_test_schema, create_test_database
+from tests.utils.test_db_settings import get_test_database_settings
 
 
 def pytest_configure(config):
@@ -69,29 +70,25 @@ sys.modules["mysql.connector"] = _mysql_connector_mock
 
 @pytest.fixture
 def test_settings() -> Settings:
-    """Loads test settings with optional environment variable overrides.
+    """Loads test settings with test database configuration.
 
-    Loads settings using load_settings() and optionally overrides database
-    attributes using environment variables:
-    - TEST_DB_HOST → database.host
-    - TEST_DB_PORT → database.port
-    - TEST_DB_NAME → database.name
+    Uses get_test_database_settings() to ensure integration tests always use
+    a dedicated test database configured via TEST_DB_* environment variables,
+    never the production database.
 
     Returns:
-        Settings object with potentially overridden database configuration.
+        Settings object with test database configuration.
     """
-    settings = load_settings()
+    from config.settings import (
+        ApplicationSettings,
+        BrevoSettings,
+        SentrySettings,
+        load_settings,
+    )
 
-    # Override database settings from environment variables if present
-    if "TEST_DB_HOST" in os.environ:
-        settings.database.host = os.environ["TEST_DB_HOST"]
-    if "TEST_DB_PORT" in os.environ:
-        try:
-            settings.database.port = int(os.environ["TEST_DB_PORT"])
-        except ValueError:
-            pass  # Keep default if invalid
-    if "TEST_DB_NAME" in os.environ:
-        settings.database.name = os.environ["TEST_DB_NAME"]
+    settings = load_settings()
+    # Replace database settings with test database settings
+    settings.database = get_test_database_settings()
 
     return settings
 
