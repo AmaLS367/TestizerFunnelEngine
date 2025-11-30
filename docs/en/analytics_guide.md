@@ -6,6 +6,8 @@ This document describes what metrics are available in the current version of the
 
 The `funnel_entries` table is used for basic funnel analytics.
 
+The table has a unique constraint on `(email, funnel_type, test_id)` that enforces idempotency. Any attempt to insert a duplicate entry for the same triple will fail with a unique constraint error.
+
 Important fields:
 
 - `email`
