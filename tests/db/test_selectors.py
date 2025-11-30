@@ -52,7 +52,7 @@ def test_get_language_test_candidates_uses_params_and_returns_rows() -> None:
     dummy_cursor = DummyCursor(rows=expected_rows)
     connection = DummyConnection(cursor=dummy_cursor)
 
-    result = selectors.get_language_test_candidates(connection, limit=50)
+    result = selectors.get_language_test_candidates(connection, limit=50)  # type: ignore[arg-type]
 
     assert result == expected_rows
     assert dummy_cursor.fetchall_called is True
@@ -66,7 +66,7 @@ def test_get_non_language_test_candidates_is_placeholder() -> None:
     dummy_cursor = DummyCursor()
     connection = DummyConnection(cursor=dummy_cursor)
 
-    result = selectors.get_non_language_test_candidates(connection, limit=25)
+    result = selectors.get_non_language_test_candidates(connection, limit=25)  # type: ignore[arg-type]
 
     assert result == []
 
@@ -76,7 +76,7 @@ def test_get_pending_funnel_entries_uses_max_rows_parameter() -> None:
     dummy_cursor = DummyCursor(rows=expected_rows)
     connection = DummyConnection(cursor=dummy_cursor)
 
-    result = selectors.get_pending_funnel_entries(connection, max_rows=40)
+    result = selectors.get_pending_funnel_entries(connection, max_rows=40)  # type: ignore[arg-type]
 
     assert result == expected_rows
     assert dummy_cursor.fetchall_called is True
@@ -90,7 +90,7 @@ def test_get_certificate_purchase_for_entry_returns_row_or_none() -> None:
     dummy_cursor_with_row = DummyCursor(row=(123, payment_datetime))
     connection_with_row = DummyConnection(cursor=dummy_cursor_with_row)
 
-    found = selectors.get_certificate_purchase_for_entry(
+    found = selectors.get_certificate_purchase_for_entry(  # type: ignore[arg-type]
         connection=connection_with_row,
         email="user@example.com",
         funnel_type="language",
@@ -105,7 +105,7 @@ def test_get_certificate_purchase_for_entry_returns_row_or_none() -> None:
     dummy_cursor_without_row = DummyCursor(row=None)
     connection_without_row = DummyConnection(cursor=dummy_cursor_without_row)
 
-    not_found = selectors.get_certificate_purchase_for_entry(
+    not_found = selectors.get_certificate_purchase_for_entry(  # type: ignore[arg-type]
         connection=connection_without_row,
         email="user@example.com",
         funnel_type="language",
