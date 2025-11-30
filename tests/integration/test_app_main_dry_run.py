@@ -29,7 +29,7 @@ def test_app_main_dry_run_does_not_create_records(
     cursor = mysql_test_connection.cursor()
 
     cursor.execute("INSERT INTO simpletest_lang (Id) VALUES (1)")
-    cursor.execute("INSERT INTO simpletest_test (Id, LangId) VALUES (1, 1)")
+    cursor.execute("INSERT INTO simpletest_test (newid, Id, LangId) VALUES (1, 1, 1)")
 
     now = datetime.now()
     recent_date = now - timedelta(days=10)

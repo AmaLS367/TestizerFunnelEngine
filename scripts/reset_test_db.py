@@ -4,6 +4,11 @@ import pathlib
 import sys
 from typing import NoReturn
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 # Add project root to Python path for imports
 project_root = pathlib.Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:

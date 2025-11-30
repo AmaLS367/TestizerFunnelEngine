@@ -97,12 +97,9 @@ def test_settings() -> Settings:
 def mysql_test_database(test_settings: Settings) -> DatabaseSettings:
     """Creates and prepares test database with schema.
 
-    Creates the test database if it doesn't exist and applies the test schema.
-    This fixture is the base for any integration test that needs a prepared
-    database schema.
-
-    For integration tests, this fixture restores the real mysql.connector module
-    to allow actual database operations.
+    For DB integration tests, this fixture restores the real mysql.connector
+    and prepares the test database. If TESTIZER_ENABLE_DB_TESTS is not "1",
+    the tests using this fixture are skipped.
 
     Args:
         test_settings: Test settings fixture containing database configuration.
@@ -110,6 +107,12 @@ def mysql_test_database(test_settings: Settings) -> DatabaseSettings:
     Returns:
         DatabaseSettings object for the prepared test database.
     """
+    if os.getenv("TESTIZER_ENABLE_DB_TESTS", "0") != "1":
+        pytest.skip(
+            "DB integration tests are disabled. "
+            "Set TESTIZER_ENABLE_DB_TESTS=1 and configure a test database to run them."
+        )
+
     # Restore real mysql.connector for integration tests
     import importlib
 

@@ -31,7 +31,7 @@ def test_get_language_test_candidates_filters_correctly(
     cursor.execute("INSERT INTO simpletest_lang (Id) VALUES (1)")
 
     # Test linked to language
-    cursor.execute("INSERT INTO simpletest_test (Id, LangId) VALUES (1, 1)")
+    cursor.execute("INSERT INTO simpletest_test (newid, Id, LangId) VALUES (1, 1, 1)")
 
     # Users with various scenarios
     now = datetime.now()
@@ -106,7 +106,7 @@ def test_get_language_test_candidates_respects_limit(
 
     # Insert test data
     cursor.execute("INSERT INTO simpletest_lang (Id) VALUES (1)")
-    cursor.execute("INSERT INTO simpletest_test (Id, LangId) VALUES (1, 1)")
+    cursor.execute("INSERT INTO simpletest_test (newid, Id, LangId) VALUES (1, 1, 1)")
 
     # Insert multiple valid candidates
     now = datetime.now()

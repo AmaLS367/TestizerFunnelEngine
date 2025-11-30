@@ -5,7 +5,12 @@ import pathlib
 import sys
 from typing import NoReturn
 
+from dotenv import load_dotenv
+
 import mysql.connector
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add project root to Python path for imports
 project_root = pathlib.Path(__file__).resolve().parent.parent
@@ -19,7 +24,7 @@ def init_test_database() -> None:
     This function creates a dedicated test database and user with full privileges,
     ensuring that integration tests and reset scripts never touch the production database.
 
-    Reads the following environment variables:
+    Reads the following environment variables from .env file:
     - TEST_DB_ADMIN_HOST: MySQL server host for admin connection
     - TEST_DB_ADMIN_PORT: MySQL server port for admin connection
     - TEST_DB_ADMIN_USER: MySQL admin username
@@ -29,38 +34,42 @@ def init_test_database() -> None:
     - TEST_DB_PASSWORD: Password for the test database user
 
     Raises:
-        ValueError: If required environment variables are missing.
+        RuntimeError: If required environment variables are missing.
         mysql.connector.Error: If database operations fail.
     """
     # Read environment variables
     admin_host = os.getenv("TEST_DB_ADMIN_HOST")
-    admin_port_str = os.getenv("TEST_DB_ADMIN_PORT", "3306")
-    admin_user = os.getenv("TEST_DB_ADMIN_USER")
-    admin_password = os.getenv("TEST_DB_ADMIN_PASSWORD")
-    test_db_name = os.getenv("TEST_DB_NAME")
-    test_db_user = os.getenv("TEST_DB_USER")
-    test_db_password = os.getenv("TEST_DB_PASSWORD")
+    if not admin_host:
+        raise RuntimeError("TEST_DB_ADMIN_HOST is not set")
 
-    # Validate required variables
-    required_vars = {
-        "TEST_DB_ADMIN_HOST": admin_host,
-        "TEST_DB_ADMIN_USER": admin_user,
-        "TEST_DB_ADMIN_PASSWORD": admin_password,
-        "TEST_DB_NAME": test_db_name,
-        "TEST_DB_USER": test_db_user,
-        "TEST_DB_PASSWORD": test_db_password,
-    }
-
-    missing_vars = [var for var, value in required_vars.items() if not value]
-    if missing_vars:
-        raise ValueError(
-            f"Missing required environment variables: {', '.join(missing_vars)}"
-        )
+    admin_port_str = os.getenv("TEST_DB_ADMIN_PORT")
+    if not admin_port_str:
+        raise RuntimeError("TEST_DB_ADMIN_PORT is not set")
 
     try:
         admin_port = int(admin_port_str)
     except ValueError:
-        raise ValueError(f"Invalid TEST_DB_ADMIN_PORT value: {admin_port_str}")
+        raise RuntimeError(f"Invalid TEST_DB_ADMIN_PORT value: {admin_port_str}")
+
+    admin_user = os.getenv("TEST_DB_ADMIN_USER")
+    if not admin_user:
+        raise RuntimeError("TEST_DB_ADMIN_USER is not set")
+
+    admin_password = os.getenv("TEST_DB_ADMIN_PASSWORD")
+    if not admin_password:
+        raise RuntimeError("TEST_DB_ADMIN_PASSWORD is not set")
+
+    test_db_name = os.getenv("TEST_DB_NAME")
+    if not test_db_name:
+        raise RuntimeError("TEST_DB_NAME is not set")
+
+    test_db_user = os.getenv("TEST_DB_USER")
+    if not test_db_user:
+        raise RuntimeError("TEST_DB_USER is not set")
+
+    test_db_password = os.getenv("TEST_DB_PASSWORD")
+    if not test_db_password:
+        raise RuntimeError("TEST_DB_PASSWORD is not set")
 
     # Connect to MySQL as admin
     admin_connection = None

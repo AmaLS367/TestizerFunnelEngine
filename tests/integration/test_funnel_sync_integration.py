@@ -56,7 +56,7 @@ def test_funnel_sync_creates_entry_and_outbox_job(
 
     # Insert test data for a valid candidate
     cursor.execute("INSERT INTO simpletest_lang (Id) VALUES (1)")
-    cursor.execute("INSERT INTO simpletest_test (Id, LangId) VALUES (1, 1)")
+    cursor.execute("INSERT INTO simpletest_test (newid, Id, LangId) VALUES (1, 1, 1)")
 
     now = datetime.now()
     recent_date = now - timedelta(days=10)
@@ -143,7 +143,7 @@ def test_funnel_sync_skips_existing_entries(
 
     # Insert test data
     cursor.execute("INSERT INTO simpletest_lang (Id) VALUES (1)")
-    cursor.execute("INSERT INTO simpletest_test (Id, LangId) VALUES (1, 1)")
+    cursor.execute("INSERT INTO simpletest_test (newid, Id, LangId) VALUES (2, 1, 1)")
 
     now = datetime.now()
     recent_date = now - timedelta(days=10)
