@@ -1,0 +1,17 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+logs
+.pytest_cache
+.cache
+.idea
+.vscode
+.cursor
+node_modules
+full_project_context_testizer.txt
+
