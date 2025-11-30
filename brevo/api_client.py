@@ -1,7 +1,8 @@
 import logging
 import random
 import time
-from typing import Any, Dict, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -41,6 +42,9 @@ class BrevoApiClient:
         dry_run: bool,
         max_retries: int = 3,
         base_backoff_seconds: float = 1.0,
+        max_requests_per_minute: int = 60,
+        circuit_open_seconds: int = 60,
+        circuit_error_threshold: int = 5,
     ) -> None:
         """Initializes the Brevo API client.
 
@@ -55,18 +59,114 @@ class BrevoApiClient:
                 Defaults to 3.
             base_backoff_seconds: Base delay in seconds for exponential backoff.
                 Defaults to 1.0.
+            max_requests_per_minute: Maximum number of requests allowed per minute.
+                Defaults to 60.
+            circuit_open_seconds: Number of seconds to keep circuit breaker open
+                after threshold is reached. Defaults to 60.
+            circuit_error_threshold: Number of consecutive errors before opening
+                circuit breaker. Defaults to 5.
         """
         self.api_key = api_key.strip()
         self.base_url = base_url.rstrip("/")
         self.dry_run = dry_run
         self.max_retries = max_retries
         self.base_backoff_seconds = base_backoff_seconds
+        self.max_requests_per_minute = max_requests_per_minute
+        self.circuit_open_seconds = circuit_open_seconds
+        self.circuit_error_threshold = circuit_error_threshold
         self.logger = logging.getLogger("brevo.api_client")
+
+        # Rate limiting state
+        self._request_timestamps: List[float] = []
+
+        # Circuit breaker state
+        self.consecutive_errors: int = 0
+        self.circuit_open_until: Optional[datetime] = None
 
     def _build_url(self, path: str) -> str:
         if not path.startswith("/"):
             path = "/" + path
         return f"{self.base_url}{path}"
+
+    def _check_circuit_breaker(self) -> None:
+        """Checks circuit breaker state and raises BrevoTransientError if circuit is open.
+
+        Raises:
+            BrevoTransientError: If circuit breaker is open and timeout hasn't passed.
+        """
+        now = datetime.now()
+        if self.circuit_open_until is not None:
+            if now < self.circuit_open_until:
+                self.logger.warning(
+                    "Circuit breaker is open until %s. Request blocked.",
+                    self.circuit_open_until,
+                )
+                raise BrevoTransientError(
+                    f"Circuit breaker is open. Retry after {self.circuit_open_until}"
+                )
+            else:
+                # Circuit timeout has passed, reset it
+                self.logger.info("Circuit breaker timeout expired. Resetting circuit.")
+                self.circuit_open_until = None
+                self.consecutive_errors = 0
+
+    def _apply_rate_limiting(self) -> None:
+        """Applies rate limiting by sleeping if necessary.
+
+        Removes timestamps older than 60 seconds and sleeps if the number
+        of recent requests exceeds max_requests_per_minute.
+        """
+        now = time.time()
+        cutoff_time = now - 60.0
+
+        # Remove timestamps older than 60 seconds
+        self._request_timestamps = [
+            ts for ts in self._request_timestamps if ts > cutoff_time
+        ]
+
+        # Check if we're at the rate limit
+        if len(self._request_timestamps) >= self.max_requests_per_minute:
+            # Calculate how long to sleep until the oldest timestamp moves out
+            oldest_timestamp = min(self._request_timestamps)
+            sleep_duration = (oldest_timestamp + 60.0) - now
+
+            if sleep_duration > 0:
+                self.logger.info(
+                    "Rate limit reached (%d requests in last 60s). "
+                    "Sleeping for %.2f seconds",
+                    len(self._request_timestamps),
+                    sleep_duration,
+                )
+                time.sleep(sleep_duration)
+
+                # Clean up again after sleep
+                now = time.time()
+                cutoff_time = now - 60.0
+                self._request_timestamps = [
+                    ts for ts in self._request_timestamps if ts > cutoff_time
+                ]
+
+    def _record_request_attempt(self) -> None:
+        """Records a request attempt timestamp for rate limiting."""
+        self._request_timestamps.append(time.time())
+
+    def _handle_request_success(self) -> None:
+        """Handles successful request by resetting circuit breaker error count."""
+        self.consecutive_errors = 0
+
+    def _handle_request_error(self) -> None:
+        """Handles request error by incrementing error count and opening circuit if needed."""
+        self.consecutive_errors += 1
+        if self.consecutive_errors >= self.circuit_error_threshold:
+            self.circuit_open_until = datetime.now() + timedelta(
+                seconds=self.circuit_open_seconds
+            )
+            self.logger.error(
+                "Circuit breaker opened after %d consecutive errors. "
+                "Will remain open until %s",
+                self.consecutive_errors,
+                self.circuit_open_until,
+            )
 
     def _request(
         self,
@@ -120,6 +220,9 @@ class BrevoApiClient:
             "Accept": "application/json",
         }
 
+        # Apply rate limiting before the actual request
+        self._apply_rate_limiting()
+
         try:
             response = requests.request(
                 method=method,
@@ -128,8 +231,12 @@ class BrevoApiClient:
                 json=json_body,
                 timeout=10,
             )
+            # Record the request attempt (successful HTTP call)
+            self._record_request_attempt()
         except requests.RequestException as error:
             self.logger.error("Brevo request error: %s", error)
+            # Record the request attempt (failed HTTP call)
+            self._record_request_attempt()
             raise BrevoTransientError(f"Network error: {error}") from error
 
         if response.status_code >= 400:
@@ -197,15 +304,26 @@ class BrevoApiClient:
             self.dry_run,
         )
 
+        # Check circuit breaker before starting retry loop
+        self._check_circuit_breaker()
+
         last_error: Optional[BrevoTransientError] = None
         for attempt in range(self.max_retries + 1):
             try:
-                return self._request("POST", "/contacts", json_body=payload)
+                result = self._request("POST", "/contacts", json_body=payload)
+                # Success - reset circuit breaker error count
+                self._handle_request_success()
+                return result
             except BrevoFatalError:
                 # Fatal errors should not be retried
+                # Record error for circuit breaker
+                self._handle_request_error()
                 raise
             except BrevoTransientError as error:
                 last_error = error
+                # Record error for circuit breaker
+                self._handle_request_error()
+
                 if attempt < self.max_retries:
                     # Calculate exponential backoff with jitter
                     sleep_seconds = self.base_backoff_seconds * (2**attempt)
