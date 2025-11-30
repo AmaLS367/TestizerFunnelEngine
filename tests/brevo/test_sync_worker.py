@@ -76,13 +76,16 @@ def test_run_once_processes_upsert_contact_job(monkeypatch):
                 ),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         pass
 
     import brevo.sync_worker as worker_module
@@ -121,13 +124,16 @@ def test_run_once_processes_update_after_purchase_job(monkeypatch):
                 ),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         pass
 
     import brevo.sync_worker as worker_module
@@ -164,13 +170,16 @@ def test_run_once_marks_job_error_on_invalid_payload(monkeypatch):
                 payload="invalid json{",
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         error_calls.append((job_id, error_message))
 
     import brevo.sync_worker as worker_module
@@ -206,13 +215,16 @@ def test_run_once_marks_job_error_on_missing_email(monkeypatch):
                 payload=json.dumps({"list_ids": [1]}),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         error_calls.append((job_id, error_message))
 
     import brevo.sync_worker as worker_module
@@ -248,13 +260,16 @@ def test_run_once_marks_job_error_on_unknown_operation_type(monkeypatch):
                 payload=json.dumps({"email": "user@example.com"}),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         error_calls.append((job_id, error_message))
 
     import brevo.sync_worker as worker_module
@@ -290,6 +305,7 @@ def test_run_once_processes_multiple_jobs(monkeypatch):
                 payload=json.dumps({"email": "user1@example.com"}),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             ),
             BrevoSyncJob(
                 id=7,
@@ -298,13 +314,16 @@ def test_run_once_processes_multiple_jobs(monkeypatch):
                 payload=json.dumps({"email": "user2@example.com"}),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             ),
         ]
 
     def fake_mark_job_success(conn, job_id):
         success_calls.append(job_id)
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         pass
 
     import brevo.sync_worker as worker_module
@@ -347,13 +366,16 @@ def test_run_once_handles_brevo_transient_error(monkeypatch):
                 payload=json.dumps({"email": "user@example.com"}),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         error_calls.append((job_id, error_message))
 
     import brevo.sync_worker as worker_module
@@ -394,13 +416,16 @@ def test_run_once_handles_brevo_fatal_error(monkeypatch):
                 payload=json.dumps({"email": "invalid-email"}),
                 status="pending",
                 retry_count=0,
+                next_attempt_at=None,
             )
         ]
 
     def fake_mark_job_success(conn, job_id):
         pass
 
-    def fake_mark_job_error(conn, job_id, error_message):
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
         error_calls.append((job_id, error_message))
 
     import brevo.sync_worker as worker_module
@@ -421,3 +446,130 @@ def test_run_once_handles_brevo_fatal_error(monkeypatch):
     assert error_calls[0][0] == 9
     assert "400" in error_calls[0][1]
     assert "Invalid email format" in error_calls[0][1]
+
+
+def test_run_once_does_not_process_jobs_with_future_next_attempt_at(monkeypatch):
+    """Test that run_once does not process jobs with next_attempt_at in the future."""
+    brevo_client = DummyBrevoClient()
+
+    def fake_fetch_pending_jobs(conn, limit):
+        # Return empty list - jobs with future next_attempt_at are filtered out
+        return []
+
+    def fake_mark_job_success(conn, job_id):
+        pass
+
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
+        pass
+
+    import brevo.sync_worker as worker_module
+
+    monkeypatch.setattr(worker_module, "fetch_pending_jobs", fake_fetch_pending_jobs)
+    monkeypatch.setattr(worker_module, "mark_job_success", fake_mark_job_success)
+    monkeypatch.setattr(worker_module, "mark_job_error", fake_mark_job_error)
+
+    cursor = DummyCursor()
+    connection = DummyConnection(cursor)
+    worker = BrevoSyncWorker(connection=connection, brevo_client=brevo_client)  # type: ignore[arg-type]
+    worker.run_once(limit=100)
+
+    # Should not have called Brevo API
+    assert len(brevo_client.calls) == 0
+
+
+def test_run_once_marks_fatal_error_as_failed(monkeypatch):
+    """Test that run_once marks fatal errors as permanently failed."""
+    error_calls = []
+
+    class FailingBrevoClient:
+        def create_or_update_contact(self, contact):
+            raise BrevoFatalError("Brevo API error 400: Invalid email format")
+
+    brevo_client = FailingBrevoClient()
+
+    def fake_fetch_pending_jobs(conn, limit):
+        return [
+            BrevoSyncJob(
+                id=10,
+                funnel_entry_id=20,
+                operation_type="upsert_contact",
+                payload=json.dumps({"email": "invalid-email"}),
+                status="pending",
+                retry_count=0,
+                next_attempt_at=None,
+            )
+        ]
+
+    def fake_mark_job_success(conn, job_id):
+        pass
+
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
+        error_calls.append((job_id, error_message, is_fatal))
+
+    import brevo.sync_worker as worker_module
+
+    monkeypatch.setattr(worker_module, "fetch_pending_jobs", fake_fetch_pending_jobs)
+    monkeypatch.setattr(worker_module, "mark_job_success", fake_mark_job_success)
+    monkeypatch.setattr(worker_module, "mark_job_error", fake_mark_job_error)
+
+    cursor = DummyCursor()
+    connection = DummyConnection(cursor)
+    worker = BrevoSyncWorker(connection=connection, brevo_client=brevo_client)  # type: ignore[arg-type]
+    worker.run_once(limit=100)
+
+    # Should have marked job as error with is_fatal=True
+    assert len(error_calls) == 1
+    assert error_calls[0][0] == 10
+    assert error_calls[0][2] is True  # is_fatal should be True
+
+
+def test_run_once_schedules_retry_for_transient_error(monkeypatch):
+    """Test that run_once schedules retry for transient errors."""
+    error_calls = []
+
+    class FailingBrevoClient:
+        def create_or_update_contact(self, contact):
+            raise BrevoTransientError("Network error: Connection timeout")
+
+    brevo_client = FailingBrevoClient()
+
+    def fake_fetch_pending_jobs(conn, limit):
+        return [
+            BrevoSyncJob(
+                id=11,
+                funnel_entry_id=21,
+                operation_type="upsert_contact",
+                payload=json.dumps({"email": "user@example.com"}),
+                status="pending",
+                retry_count=0,
+                next_attempt_at=None,
+            )
+        ]
+
+    def fake_mark_job_success(conn, job_id):
+        pass
+
+    def fake_mark_job_error(
+        conn, job_id, error_message, max_job_retries=5, is_fatal=False
+    ):
+        error_calls.append((job_id, error_message, is_fatal))
+
+    import brevo.sync_worker as worker_module
+
+    monkeypatch.setattr(worker_module, "fetch_pending_jobs", fake_fetch_pending_jobs)
+    monkeypatch.setattr(worker_module, "mark_job_success", fake_mark_job_success)
+    monkeypatch.setattr(worker_module, "mark_job_error", fake_mark_job_error)
+
+    cursor = DummyCursor()
+    connection = DummyConnection(cursor)
+    worker = BrevoSyncWorker(connection=connection, brevo_client=brevo_client)  # type: ignore[arg-type]
+    worker.run_once(limit=100)
+
+    # Should have marked job as error with is_fatal=False (for retry)
+    assert len(error_calls) == 1
+    assert error_calls[0][0] == 11
+    assert error_calls[0][2] is False  # is_fatal should be False

@@ -5,9 +5,8 @@ jobs stored in the brevo_sync_outbox table. All functions are transaction-friend
 and do not perform commits or rollbacks - transaction control is the caller's responsibility.
 """
 
-import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from mysql.connector import MySQLConnection
 
@@ -22,6 +21,7 @@ class BrevoSyncJob:
     payload: str
     status: str
     retry_count: int
+    next_attempt_at: Optional[str] = None  # DATETIME as string or None
 
 
 def enqueue_brevo_sync_job(
@@ -96,9 +96,11 @@ def fetch_pending_jobs(
             operation_type,
             payload,
             status,
-            retry_count
+            retry_count,
+            next_attempt_at
         FROM brevo_sync_outbox
         WHERE status = 'pending'
+          AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
         ORDER BY id
         LIMIT %s
         """
@@ -115,6 +117,7 @@ def fetch_pending_jobs(
                 payload=row[3],
                 status=row[4],
                 retry_count=row[5],
+                next_attempt_at=row[6],
             )
             jobs.append(job)
 
@@ -156,16 +159,22 @@ def mark_job_error(
     connection: MySQLConnection,
     job_id: int,
     error_message: str,
+    max_job_retries: int = 5,
+    is_fatal: bool = False,
 ) -> None:
-    """Marks a job as failed with an error message.
+    """Marks a job as failed with an error message and schedules retry if applicable.
 
-    Updates the job row to set status='error', last_error=error_message,
-    and increments retry_count by 1.
+    Increments retry_count by 1. If retry_count is still <= max_job_retries and
+    the error is not fatal, sets status='pending' and schedules next_attempt_at.
+    Otherwise, sets status='failed' and clears next_attempt_at.
 
     Args:
         connection: Active MySQL database connection.
         job_id: ID of the job to mark as failed.
         error_message: Error message describing the failure.
+        max_job_retries: Maximum number of retry attempts. Defaults to 5.
+        is_fatal: If True, marks the job as permanently failed regardless of retry_count.
+            Defaults to False.
 
     Raises:
         mysql.connector.Error: If database update fails.
@@ -173,16 +182,37 @@ def mark_job_error(
     cursor = connection.cursor()
 
     try:
-        query = """
-        UPDATE brevo_sync_outbox
-        SET status = 'error',
-            last_error = %s,
-            retry_count = retry_count + 1
-        WHERE id = %s
-        """
-
-        cursor.execute(query, (error_message, job_id))
+        if is_fatal:
+            # Fatal errors are marked as failed immediately
+            query = """
+            UPDATE brevo_sync_outbox
+            SET status = 'failed',
+                last_error = %s,
+                retry_count = retry_count + 1,
+                next_attempt_at = NULL
+            WHERE id = %s
+            """
+            cursor.execute(query, (error_message, job_id))
+        else:
+            # Check current retry_count to decide if we should retry
+            # We need to increment and check in the same query
+            query = """
+            UPDATE brevo_sync_outbox
+            SET retry_count = retry_count + 1,
+                last_error = %s,
+                status = CASE
+                    WHEN retry_count + 1 <= %s THEN 'pending'
+                    ELSE 'failed'
+                END,
+                next_attempt_at = CASE
+                    WHEN retry_count + 1 <= %s THEN NOW() + INTERVAL (retry_count + 1) * 5 MINUTE
+                    ELSE NULL
+                END
+            WHERE id = %s
+            """
+            cursor.execute(
+                query, (error_message, max_job_retries, max_job_retries, job_id)
+            )
 
     finally:
         cursor.close()
-

@@ -77,6 +77,30 @@ The `brevo_sync_outbox` table stores pending and processed jobs for Brevo synchr
 
 Each row in the outbox is linked to a funnel entry via the `funnel_entry_id` field, which references `funnel_entries.id`. The table tracks operation status, retry attempts, and error information to support reliable delivery of Brevo API calls.
 
+### 2.1. Job Statuses
+
+Jobs in the outbox can have the following statuses:
+
+* **`pending`**: The job is waiting to be processed or scheduled for retry. Jobs with `status='pending'` and `next_attempt_at IS NULL OR next_attempt_at <= NOW()` are eligible for processing.
+
+* **`success`**: The job has been successfully processed. The job is no longer picked up by the worker.
+
+* **`failed`**: The job has permanently failed after exceeding the maximum retry count or encountering a fatal error. The job is no longer picked up by the worker.
+
+### 2.2. Retry Scheduling
+
+The outbox implements explicit retry scheduling using `retry_count` and `next_attempt_at`:
+
+* **`retry_count`**: Tracks the number of times a job has been attempted. This counter is incremented each time a job fails.
+
+* **`next_attempt_at`**: A DATETIME field that specifies when the job should be retried. This field is used to schedule retries with exponential backoff:
+  * When a job fails with a transient error and `retry_count` is still below the maximum (default: 5), the job status remains `pending` and `next_attempt_at` is set to `NOW() + INTERVAL (retry_count * 5) MINUTE`.
+  * When a job fails with a fatal error or exceeds the maximum retry count, `next_attempt_at` is set to `NULL` and the job status is set to `failed`.
+
+* **Maximum retries**: By default, jobs are retried up to 5 times. After the maximum retry count is exceeded, the job is marked as `failed` and is no longer processed by the worker.
+
+The worker only processes jobs where `status='pending'` and `(next_attempt_at IS NULL OR next_attempt_at <= NOW())`, ensuring that scheduled retries are respected and jobs are not processed before their scheduled time.
+
 ## 3. Conversion Report
 
 To view funnel conversion, use the script:

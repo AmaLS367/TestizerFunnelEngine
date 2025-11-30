@@ -75,27 +75,31 @@ class BrevoSyncWorker:
                 )
             except BrevoTransientError as e:
                 error_message = str(e)
-                mark_job_error(self.connection, job.id, error_message)
+                mark_job_error(self.connection, job.id, error_message, is_fatal=False)
                 self.logger.warning(
-                    "Transient error processing job %s (operation_type=%s): %s",
+                    "Transient error processing job %s (operation_type=%s): %s. "
+                    "Job will be retried.",
                     job.id,
                     job.operation_type,
                     error_message,
                 )
             except BrevoFatalError as e:
                 error_message = str(e)
-                mark_job_error(self.connection, job.id, error_message)
+                mark_job_error(self.connection, job.id, error_message, is_fatal=True)
                 self.logger.error(
-                    "Fatal error processing job %s (operation_type=%s): %s",
+                    "Fatal error processing job %s (operation_type=%s): %s. "
+                    "Job marked as permanently failed.",
                     job.id,
                     job.operation_type,
                     error_message,
                 )
             except Exception as e:
                 error_message = str(e)
-                mark_job_error(self.connection, job.id, error_message)
+                # Unknown exceptions are treated as transient for retry
+                mark_job_error(self.connection, job.id, error_message, is_fatal=False)
                 self.logger.error(
-                    "Failed to process job %s (operation_type=%s): %s",
+                    "Failed to process job %s (operation_type=%s): %s. "
+                    "Job will be retried.",
                     job.id,
                     job.operation_type,
                     error_message,
