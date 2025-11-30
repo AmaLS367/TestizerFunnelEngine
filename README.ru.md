@@ -1,8 +1,9 @@
 # Testizer Email Funnels
 
-![CI](https://github.com/AmaLS367/testizer_email_funnels/actions/workflows/ci.yml/badge.svg?branch=main)
+[![CI](https://github.com/AmaLS367/TestizerFunnelEngine/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AmaLS367/TestizerFunnelEngine/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 ![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Ruff](https://img.shields.io/badge/linting-ruff-3f8cff?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 ![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)
 
 **Языки:** [English](README.md) | **Русский**
@@ -122,7 +123,7 @@ testizer_email_funnels/
 │   └── db_analytics_schema.sql  # Схема базы данных
 ├── Dockerfile            # Определение Docker-образа
 ├── .dockerignore        # Паттерны игнорирования для Docker
-├── .flake8              # Конфигурация Flake8
+├── .flake8              # Конфигурация Flake8 (устарело, используется Ruff)
 ├── pyproject.toml       # Конфигурация проекта (black, mypy, pytest)
 ├── requirements.txt     # Зависимости Python
 └── README.md           # Этот файл
@@ -137,7 +138,7 @@ testizer_email_funnels/
 - `requests==2.32.3` - HTTP-клиент для API Brevo
 - `pytest==8.3.4` - Фреймворк тестирования
 - `sentry-sdk==2.19.1` - Отслеживание ошибок
-- `flake8==7.3.0` - Проверка стиля кода
+- `ruff` - Быстрый линтер Python (заменяет flake8)
 - `mypy==1.19.0` - Проверка типов
 - `black==25.11.0` - Форматирование кода
 
@@ -220,7 +221,7 @@ python -m pytest
 Проект использует несколько инструментов для поддержания качества кода:
 
 - **Black**: Автоматическое форматирование кода
-- **Flake8**: Проверка соответствия стилю
+- **Ruff**: Быстрый линтер Python
 - **MyPy**: Статическая проверка типов
 - **Pytest**: Выполнение тестов
 
@@ -228,7 +229,7 @@ python -m pytest
 
 ```powershell
 black --check .
-flake8 .
+ruff check .
 mypy .
 pytest
 ```
