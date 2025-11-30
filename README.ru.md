@@ -1,10 +1,10 @@
 # Testizer Email Funnels
 
 [![CI](https://github.com/AmaLS367/TestizerFunnelEngine/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AmaLS367/TestizerFunnelEngine/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
-![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/badge/linting-ruff-3f8cff?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
-![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
 **Языки:** [English](README.md) | **Русский**
 
