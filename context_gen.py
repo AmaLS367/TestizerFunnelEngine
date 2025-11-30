@@ -19,11 +19,13 @@ IGNORE_DIRS = {
     ".tox",
     "dist",
     "build",
-    "*.egg-info",
-    ".coverage",
     "htmlcov",
     ".hypothesis",
 }
+
+IGNORE_DIR_PATTERNS = [
+    ".egg-info",
+]
 INCLUDE_EXT = {
     ".py",
     ".md",
@@ -72,7 +74,12 @@ def generate_context():
         outfile.write("=" * 80 + "\n\n")
 
         for root, dirs, files in os.walk("."):
-            dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
+            dirs[:] = [
+                d
+                for d in dirs
+                if d not in IGNORE_DIRS
+                and not any(pattern in d for pattern in IGNORE_DIR_PATTERNS)
+            ]
 
             for file in files:
                 if file in IGNORE_FILES:
