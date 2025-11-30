@@ -14,7 +14,15 @@ Main variables in the `.env` file:
 
   Value: `true` or `false`.
 
-  When `true`, the script performs all read operations (queries) but does not send real requests to Brevo and does not modify data in the `funnel_entries` table. No writes to the database occur, and no Brevo API calls are performed. The script only logs what would have been done.
+  When `APP_DRY_RUN=true`:
+
+  * The service executes all read queries to the source database (MODX tables).
+  * No changes are made to the `funnel_entries` table.
+  * No real requests are sent to Brevo (only logs are produced).
+
+  When `APP_DRY_RUN=false`, the service performs real writes to both the database and Brevo.
+
+  Dry-run mode is intended for safe validation on production data without modifying state. This allows operators to verify query logic, data selection, and expected operations before enabling actual writes.
 
   For production mode, set to `false`.
 
