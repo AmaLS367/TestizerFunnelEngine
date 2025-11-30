@@ -90,8 +90,8 @@ def test_get_certificate_purchase_for_entry_returns_row_or_none() -> None:
     dummy_cursor_with_row = DummyCursor(row=(123, payment_datetime))
     connection_with_row = DummyConnection(cursor=dummy_cursor_with_row)
 
-    found = selectors.get_certificate_purchase_for_entry(  # type: ignore[arg-type]
-        connection=connection_with_row,
+    found = selectors.get_certificate_purchase_for_entry(
+        connection=connection_with_row,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         user_id=1,
@@ -105,8 +105,8 @@ def test_get_certificate_purchase_for_entry_returns_row_or_none() -> None:
     dummy_cursor_without_row = DummyCursor(row=None)
     connection_without_row = DummyConnection(cursor=dummy_cursor_without_row)
 
-    not_found = selectors.get_certificate_purchase_for_entry(  # type: ignore[arg-type]
-        connection=connection_without_row,
+    not_found = selectors.get_certificate_purchase_for_entry(
+        connection=connection_without_row,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         user_id=1,
