@@ -6,7 +6,7 @@ from analytics import tracking
 class DummyCursor:
     def __init__(self):
         self.executed_queries = []
-        self.fetchone_result = None
+        self.fetchone_result: tuple | None = None
 
     def execute(self, query, params=None):
         self.executed_queries.append((query, params))
@@ -36,7 +36,7 @@ def test_funnel_entry_exists_returns_false_when_no_row():
     connection = DummyConnection(cursor)
 
     result = tracking.funnel_entry_exists(
-        connection=connection,
+        connection=connection,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         test_id=None,
@@ -55,7 +55,7 @@ def test_funnel_entry_exists_returns_true_when_row_found_with_test_id():
     connection = DummyConnection(cursor)
 
     result = tracking.funnel_entry_exists(
-        connection=connection,
+        connection=connection,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         test_id=42,
@@ -73,7 +73,7 @@ def test_create_funnel_entry_inserts_and_commits():
     connection = DummyConnection(cursor)
 
     tracking.create_funnel_entry(
-        connection=connection,
+        connection=connection,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         user_id=10,
@@ -96,7 +96,7 @@ def test_mark_certificate_purchased_without_test_id_updates_and_commits():
     purchased_at = datetime(2025, 1, 1, 12, 0, 0)
 
     tracking.mark_certificate_purchased(
-        connection=connection,
+        connection=connection,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         test_id=None,
@@ -119,7 +119,7 @@ def test_mark_certificate_purchased_with_test_id_updates_and_commits():
     purchased_at = datetime(2025, 1, 1, 12, 0, 0)
 
     tracking.mark_certificate_purchased(
-        connection=connection,
+        connection=connection,  # type: ignore[arg-type]
         email="user@example.com",
         funnel_type="language",
         test_id=42,
