@@ -31,10 +31,16 @@ class BrevoSettings:
 
 
 @dataclass
+class SentrySettings:
+    dsn: Optional[str]
+
+
+@dataclass
 class Settings:
     database: DatabaseSettings
     application: ApplicationSettings
     brevo: BrevoSettings
+    sentry: SentrySettings
 
 
 def _load_boolean(name: str, default: bool) -> bool:
@@ -82,8 +88,13 @@ def load_settings() -> Settings:
         non_language_tests_list_id=_load_integer("BREVO_NON_LANGUAGE_LIST_ID", 0),
     )
 
+    sentry_settings = SentrySettings(
+        dsn=os.getenv("SENTRY_DSN"),
+    )
+
     return Settings(
         database=database_settings,
         application=application_settings,
         brevo=brevo_settings,
+        sentry=sentry_settings,
     )

@@ -46,6 +46,7 @@ def test_load_settings_builds_configuration_from_env(monkeypatch):
     monkeypatch.setenv("BREVO_BASE_URL", "https://api.example.com")
     monkeypatch.setenv("BREVO_LANGUAGE_LIST_ID", "10")
     monkeypatch.setenv("BREVO_NON_LANGUAGE_LIST_ID", "20")
+    monkeypatch.setenv("SENTRY_DSN", "https://example@sentry.io/123456")
 
     config = settings_module.load_settings()
 
@@ -62,4 +63,5 @@ def test_load_settings_builds_configuration_from_env(monkeypatch):
     assert config.brevo.base_url == "https://api.example.com"
     assert config.brevo.language_tests_list_id == 10
     assert config.brevo.non_language_tests_list_id == 20
+    assert config.sentry.dsn == "https://example@sentry.io/123456"
 
