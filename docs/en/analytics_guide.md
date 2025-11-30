@@ -71,7 +71,13 @@ The script queries the database for groups of entries that share the same `(emai
 
 The script is strictly read-only and does not modify the database in any way. It is safe to run on production databases for diagnostic purposes.
 
-## 2. Conversion Report
+## 2. brevo_sync_outbox Table Structure
+
+The `brevo_sync_outbox` table stores pending and processed jobs for Brevo synchronization. This table implements an outbox pattern, decoupling database writes from external API calls to ensure reliable processing of Brevo operations.
+
+Each row in the outbox is linked to a funnel entry via the `funnel_entry_id` field, which references `funnel_entries.id`. The table tracks operation status, retry attempts, and error information to support reliable delivery of Brevo API calls.
+
+## 3. Conversion Report
 
 To view funnel conversion, use the script:
 
@@ -109,7 +115,7 @@ If only `--from-date` is specified, entries from that date to the current moment
 
 If parameters are not specified, all entries from `funnel_entries` are taken.
 
-## 3. Interpreting Results
+## 4. Interpreting Results
 
 Example questions that can be answered:
 
@@ -119,7 +125,7 @@ Example questions that can be answered:
 
 For more detailed analytics, you can use SQL queries to `funnel_entries`, combining conditions by `email`, `user_id`, `test_id`, and time.
 
-## 4. Extending Analytics with UTM Tags
+## 5. Extending Analytics with UTM Tags
 
 Currently, the script does not modify email content, only sends contacts to Brevo. For extended analytics via UTM tags, you can use the following approach:
 
@@ -139,7 +145,7 @@ Currently, the script does not modify email content, only sends contacts to Brev
 
 With this approach, the database and script structure doesn't change, and extended analytics is configured through email templates and external reports.
 
-## 5. Possible Development Directions
+## 6. Possible Development Directions
 
 If more detailed analytics are needed in the future, you can:
 
