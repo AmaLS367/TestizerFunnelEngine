@@ -42,6 +42,25 @@ Important fields:
 
   Date and time of certificate purchase. Populated during synchronization with MODX tables.
 
+### 1.1. Checking for duplicate funnel entries
+
+Before applying the unique constraint migration in production, operators should check for existing duplicate entries in the `funnel_entries` table. This can be done using the diagnostic script:
+
+```powershell
+python -m scripts.find_funnel_duplicates
+```
+
+The script queries the database for groups of entries that share the same `(email, funnel_type, test_id)` combination and displays them in a readable table format. The output includes:
+
+* The duplicate email, funnel type, and test ID combination
+* The count of duplicate entries for each combination
+* The minimum and maximum entry IDs
+* The earliest and latest entry timestamps
+
+If duplicates are found, they must be cleaned manually or via MySQL scripts before running the migration that adds the unique constraint. The migration will fail if duplicate entries exist when the constraint is applied.
+
+The script is strictly read-only and does not modify the database in any way.
+
 ## 2. Conversion Report
 
 To view funnel conversion, use the script:
